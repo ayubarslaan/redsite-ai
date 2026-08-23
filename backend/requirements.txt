@@ -1,0 +1,36 @@
+# RedSite AI Backend Dependencies
+# Python 3.11+
+
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# Data & ML
+numpy==1.26.4
+scipy==1.13.1
+
+# Optional: full planetary data pipeline (uncomment for production)
+# rasterio==1.3.10
+# gdal==3.9.0
+# psycopg2-binary==2.9.9
+# shapely==2.0.4
+# geopandas==0.14.4
+
+# ML / CV (uncomment when training terrain classifier)
+# torch==2.3.1
+# torchvision==0.18.1
+
+# AI / LLM (uncomment when connecting to watsonx.ai)
+# langchain==0.2.0
+# langchain-ibm==0.1.0
+# ibm-watsonx-ai==1.0.0
+
+# Vector DB (uncomment for RAG)
+# chromadb==0.5.0
+# sentence-transformers==3.0.0
+
+# Utilities
+pydantic==2.7.4
+python-dotenv==1.0.1
+httpx==0.27.0

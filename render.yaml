@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: redsite-ai
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/redsite-ai
+    branch: main
+    dockerfilePath: ./Dockerfile.render
+    envVars:
+      - key: WATSONX_API_KEY
+        sync: false
+      - key: WATSONX_PROJECT_ID
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:///./data/redsite.db
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    plan: free
+    healthCheckPath: /api/health
