@@ -9,6 +9,14 @@
 
 ---
 
+## 🚀 Live App
+
+**[Open RedSite AI →](YOUR_LIVE_APP_URL)**
+
+> Replace `YOUR_LIVE_APP_URL` with the deployed application URL before publishing the project.
+
+---
+
 ## 🎯 Problem Statement
 
 Humanity may eventually need to choose where to build its first permanent settlement on another planet. Mars spans **144.8 million km²** of heterogeneous terrain, subsurface ice, solar potential, and scientific value. NASA and commercial partners (SpaceX, Blue Origin) are actively evaluating candidate regions, but the process remains manual, siloed across datasets, and inaccessible to mission planners who need to weigh competing priorities.
@@ -153,7 +161,7 @@ This creates an **authentic, timestamped audit trail** where:
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
 pip install -r requirements.txt
 
 # Set environment variables
@@ -236,25 +244,15 @@ The video covers:
 
 ---
 
-## 👥 Team
-
-| Name | Role |
-|------|------|
-| [Your Name] | Project Lead / Full-Stack Developer |
-| [Teammate 2] | ML / Data Engineering |
-| [Teammate 3] | Frontend / UX |
-
----
-
 ## 🏆 Judging Criteria Alignment
 
 | Criterion | How RedSite AI Delivers |
 |-----------|------------------------|
 | **Technical Execution** | Full-stack FastAPI + Next.js, IBM Granite RAG, PyTorch CV, PostGIS spatial queries |
-| **Innovation** | First Mars-focused project in the challenge; mission-aware what-if simulator; explainable AI analyst |
+| **Innovation** | Mission-aware what-if simulator; explainable AI analyst |
 | **Challenge Fit** | Directly addresses "decision-support" and "making space more accessible" |
 | **Feasibility** | 100% public NASA data; no space hardware required; scalable to additional sites |
-| **Real-World Impact** | Supports NASA Artemis III planning, SpaceX Starship site selection, and academic Mars research |
+| **Real-World Impact** | Supports NASA Artemis-scale mission planning, commercial Mars exploration, and academic Mars research |
 
 ---
 
