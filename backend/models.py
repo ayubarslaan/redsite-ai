@@ -145,3 +145,71 @@ class AnalystChatResponse(BaseModel):
     response: str
     sources: List[str] = []
     model_used: str = "rule-based"
+
+# ---------------------------------------------------------------------------
+# Data provenance models
+# ---------------------------------------------------------------------------
+
+class FeatureProvenanceItem(BaseModel):
+    """Provenance record for a single feature dimension."""
+    derived_from: str = Field(..., description="Method or source that produced this value")
+    status: str = Field(
+        ...,
+        description="One of: WORKING PROTOTYPE, SIMULATED, NOT IMPLEMENTED, STATIC/DEMO"
+    )
+    score_basis: Optional[float] = Field(
+        None, description="Raw computed value before scaling to 0-100"
+    )
+    description: str = Field(..., description="Human-readable explanation of the computation")
+
+class MOLAResult(BaseModel):
+    site_id: str
+    slope_safety_pct: float
+    mean_slope_deg: float
+    max_slope_deg_sampled: float
+    published_mean_slope_deg: float
+    rock_abundance: float
+    data_source: str
+    status: str
+    notes: str
+
+class SHARADDeposit(BaseModel):
+    depth_m: float
+    confidence: float
+    type: str
+    reference: str
+
+class SHARADResult(BaseModel):
+    site_id: str
+    ice_deposits: List[SHARADDeposit]
+    water_accessibility_score: float
+    data_source: str
+    status: str
+    notes: str
+
+class SolarResult(BaseModel):
+    site_id: str
+    latitude_deg: float
+    annual_avg_insolation_relative: float
+    equatorial_reference: float
+    solar_score: float
+    data_source: str
+    status: str
+    notes: str
+
+class ProvenanceComponents(BaseModel):
+    mola: MOLAResult
+    sharad: SHARADResult
+    solar: SolarResult
+
+class SiteProvenanceResponse(BaseModel):
+    """
+    Structured data provenance document for a single candidate site.
+
+    Describes how each feature score was derived, which computation
+    method was used, and what the explicit status of that method is.
+    """
+    site_id: str
+    pipeline_version: str
+    components: ProvenanceComponents
+    feature_provenance: Dict[str, FeatureProvenanceItem]

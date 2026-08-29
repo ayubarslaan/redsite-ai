@@ -121,21 +121,28 @@ This document catalogs all public data sources used by RedSite AI for Mars site 
 
 ## Data Pipeline Notes
 
-### For Challenge Submission (MVP)
+### Data Provenance API (WORKING)
 
-The current MVP uses **pre-computed site features** derived from the above sources. This allows the demo to run without:
-- Downloading multi-GB planetary raster datasets
-- Requiring GDAL/PostGIS installation for judges
-- Long processing times
+The `/api/sites/{site_id}/provenance` endpoint runs the ingestion pipeline and
+returns a structured provenance document for each site. It exposes:
+
+| Component | Status | Method |
+|-----------|--------|--------|
+| **Solar insolation** | WORKING PROTOTYPE | Numerical integration over 720 solar longitudes using Mars axial tilt 25.19° (Folkner et al. 1997) |
+| **MOLA slope grid** | WORKING PROTOTYPE | Rayleigh distribution parameterised from published mean slopes (Golombek et al. 2012, Tanaka et al. 2014) |
+| **SHARAD ice deposits** | SIMULATED | Science-grounded values from Bramson et al. (2015), Stuurman et al. (2016), Plaut et al. (2009) |
+| **Science value** | SIMULATED | Manual assessments from published geological analyses |
+| **EDL safety** | SIMULATED | Combined slope + elevation heuristics |
+
+Each response carries an explicit `status` field so no capability is falsely claimed.
 
 ### For Production Deployment
 
-The full pipeline (`backend/data_ingest.py`) would:
-1. Fetch MOLA tiles via HTTP from WUSTL ODE
-2. Process rasters with GDAL/rasterio
-3. Query SHARAD track database for ice detections
-4. Run HiRISE patches through the terrain CNN
-5. Store results in PostGIS for spatial queries
+To convert SIMULATED → WORKING PROTOTYPE:
+1. **MOLA**: Fetch tiles via HTTP from WUSTL ODE, process with GDAL/rasterio
+2. **SHARAD**: Query PDS track database at pds-geosciences.wustl.edu
+3. **HiRISE**: Run image patches through the terrain CNN (requires trained weights)
+4. **Science/EDL**: Integrate CRISM spectrometry and atmospheric models
 
 ---
 

@@ -14,9 +14,11 @@ from models import (
     CompareRequest, CompareResponse, SiteComparisonEntry,
     AnalystChatRequest, AnalystChatResponse, MissionProfileResponse,
     AnalystSiteData, AnalystContext,
+    SiteProvenanceResponse,
 )
 from scoring import SiteScorer, BUILT_IN_PROFILES
 from analyst import GraniteAnalyst, RuleBasedAnalyst
+from data_ingest import run_ingestion_pipeline, SITE_BOUNDS
 import os
 
 # ---------------------------------------------------------------------------
@@ -170,7 +172,13 @@ async def health():
             "sites_loaded": len(app.state.sites),
             "analyst_mode": "granite" if hasattr(app.state.analyst, "llm") else "rule-based",
             "mission_profiles": list(BUILT_IN_PROFILES.keys()),
-            "capabilities": ["score_decomposition", "what_if_weights", "ranking_explanation", "comparison"],
+            "capabilities": [
+                "score_decomposition",
+                "what_if_weights",
+                "ranking_explanation",
+                "comparison",
+                "data_provenance",
+            ],
         }
     }
 
@@ -286,6 +294,35 @@ async def list_profiles():
         )
         for key, profile in BUILT_IN_PROFILES.items()
     ]
+
+@app.get("/api/sites/{site_id}/provenance", response_model=SiteProvenanceResponse)
+async def site_provenance(site_id: str):
+    """Return the data provenance document for a candidate site.
+
+    Describes how each feature score was derived, the computation method used,
+    and the explicit status of that method (WORKING PROTOTYPE / SIMULATED /
+    NOT IMPLEMENTED).
+
+    This endpoint makes the 'pre-computed from NASA sources' claim verifiable.
+    """
+    # Validate site exists in our catalog
+    site_exists = any(s.id == site_id for s in app.state.sites)
+    if not site_exists:
+        raise HTTPException(status_code=404, detail=f"Site not found: {site_id}")
+
+    if site_id not in SITE_BOUNDS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Provenance data not available for site: {site_id}",
+        )
+
+    try:
+        result = run_ingestion_pipeline(site_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    return SiteProvenanceResponse(**result)
+
 
 @app.post("/api/analyst/chat", response_model=AnalystChatResponse)
 async def analyst_chat(request: AnalystChatRequest):

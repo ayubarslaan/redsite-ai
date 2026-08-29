@@ -201,10 +201,36 @@ Chat with the Granite AI analyst.
 - **Fallback mode:** If watsonx.ai is unavailable, the analyst falls back to rule-based templates
 - **Rate limiting:** API endpoints protected with slowapi rate limits
 
+## Data Provenance (Milestone 3)
+
+The `GET /api/sites/{site_id}/provenance` endpoint was added in Milestone 3.
+It calls `data_ingest.run_ingestion_pipeline()` and returns a structured document
+with explicit `status` labels per feature dimension:
+
+```json
+{
+  "site_id": "arc-01",
+  "pipeline_version": "1.0.0",
+  "components": {
+    "mola": { "slope_safety_pct": 100.0, "status": "WORKING PROTOTYPE", ... },
+    "sharad": { "water_accessibility_score": 73.1, "status": "SIMULATED", ... },
+    "solar": { "solar_score": 73.3, "status": "WORKING PROTOTYPE", ... }
+  },
+  "feature_provenance": {
+    "terrain": { "status": "WORKING PROTOTYPE", "score_basis": 100.0 },
+    "water":   { "status": "SIMULATED",          "score_basis": 73.1  },
+    "solar":   { "status": "WORKING PROTOTYPE",  "score_basis": 73.3  },
+    "science": { "status": "SIMULATED",          "score_basis": null  },
+    "edl":     { "status": "SIMULATED",          "score_basis": null  }
+  }
+}
+```
+
 ## Future Extensions
 
-1. **Real MOLA tile ingestion** — Currently uses pre-computed site features; full pipeline would fetch and process PDS tiles on-demand
-2. **Additional sites** — Expand from 5 candidates to 50+ using automated region-of-interest detection
-3. **3D terrain mesh** — Generate CesiumJS-compatible terrain meshes from MOLA DEM
-4. **Active learning** — Use analyst feedback to improve terrain classifier labels
-5. **Multi-mission optimization** — Pareto-frontier analysis for conflicting objectives
+1. **Real MOLA tile ingestion** — `MOLAIngestor.fetch_tile()` is scaffolded; connect HTTP download from WUSTL ODE and replace `compute_slope()` with real rasterio processing
+2. **SHARAD live query** — Replace `ICE_CATALOG` dict with live PDS track database query
+3. **Additional sites** — Expand from 5 candidates to 50+ using automated region-of-interest detection
+4. **HiRISE terrain CNN** — `terrain_cv.py` has a correct ResNet-18 architecture; requires training data and weights
+5. **3D terrain mesh** — Generate CesiumJS-compatible terrain meshes from MOLA DEM
+6. **Multi-mission optimization** — Pareto-frontier analysis for conflicting objectives
