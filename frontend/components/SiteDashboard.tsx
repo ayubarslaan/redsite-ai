@@ -1,19 +1,38 @@
 "use client";
 
 import { useMemo } from "react";
+import ScoreDecomposition from "./ScoreDecomposition";
+import MissionWeightEditor from "./MissionWeightEditor";
 
 interface Site {
   id: string;
   name: string;
   code: string;
+  coordinates: { lat: number; lon: number };
   features: { terrain: number; water: number; solar: number; science: number; edl: number };
   description: string;
+}
+
+interface FeatureContribution {
+  raw_score: number;
+  weight: number;
+  contribution: number;
+  percentage: number;
 }
 
 interface Ranking {
   site_id: string;
   score: number;
   rank: number;
+  decomposition?: Record<string, FeatureContribution>;
+}
+
+interface RankingExplanation {
+  text: string;
+  rank1_site_id: string;
+  rank1_site_name: string;
+  key_advantage_feature: string;
+  key_advantage_contribution_delta: number;
 }
 
 interface Props {
@@ -21,7 +40,11 @@ interface Props {
   rankings: Ranking[];
   selectedSite: Site | null;
   mission: string;
+  defaultWeights: Record<string, number>;
+  isCustomWeights: boolean;
+  rankingExplanation: RankingExplanation | null;
   onSelectSite: (site: Site) => void;
+  onWeightsChange: (weights: Record<string, number> | null) => void;
 }
 
 const ATTR_LABELS: Record<string, string> = {
@@ -34,7 +57,7 @@ const ATTR_LABELS: Record<string, string> = {
 
 const ATTR_COLORS: Record<string, string> = {
   terrain: "#3b82f6",
-  water: "#ef4444",
+  water: "#06b6d4",
   solar: "#22c55e",
   science: "#a855f7",
   edl: "#6b7280",
@@ -46,7 +69,17 @@ const MISSION_NAMES: Record<string, string> = {
   resource: "Resource extraction",
 };
 
-export default function SiteDashboard({ sites, rankings, selectedSite, mission, onSelectSite }: Props) {
+export default function SiteDashboard({
+  sites,
+  rankings,
+  selectedSite,
+  mission,
+  defaultWeights,
+  isCustomWeights,
+  rankingExplanation,
+  onSelectSite,
+  onWeightsChange,
+}: Props) {
   const sortedSites = useMemo(() => {
     const rankMap = new Map(rankings.map(r => [r.site_id, r]));
     return [...sites]
@@ -66,38 +99,47 @@ export default function SiteDashboard({ sites, rankings, selectedSite, mission, 
     }).join(" ");
   }, [selectedSite]);
 
+  const selectedRanking = useMemo(
+    () => rankings.find(r => r.site_id === selectedSite?.id),
+    [rankings, selectedSite]
+  );
+
   if (!selectedSite) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, minHeight: 0, overflowY: "auto" }}>
-      {/* Mission Profile */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, minHeight: 0, overflowY: "auto" }}>
+
+      {/* What-if Weight Editor */}
       <div style={{ border: "1px solid #333", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: "#aaa", display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "#666" }}>
-            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          Mission profile
-        </div>
-        <div style={{ fontSize: 13, color: "#ccc" }}>{MISSION_NAMES[mission] || mission}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {Object.entries({
-            settlement: { terrain: 25, water: 35, solar: 20, science: 10, edl: 10 },
-            science: { terrain: 20, water: 15, solar: 15, science: 40, edl: 10 },
-            resource: { terrain: 20, water: 30, solar: 15, science: 25, edl: 10 },
-          }[mission] || {}).map(([k, v]) => (
-            <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 11, color: "#888", width: 90, flexShrink: 0 }}>{ATTR_LABELS[k]}</span>
-              <div style={{ flex: 1, height: 6, background: "#222", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: `${v}%`, height: "100%", background: ATTR_COLORS[k], borderRadius: 3, transition: "width 0.3s ease" }} />
-              </div>
-              <span style={{ fontSize: 11, color: "#aaa", width: 28, textAlign: "right", fontWeight: 500 }}>{v}%</span>
-            </div>
-          ))}
-        </div>
+        <MissionWeightEditor
+          mission={mission}
+          defaultWeights={defaultWeights}
+          onWeightsChange={onWeightsChange}
+          isCustom={isCustomWeights}
+        />
       </div>
 
+      {/* Ranking Explanation */}
+      {rankingExplanation && (
+        <div style={{
+          border: "1px solid #2a2a2a", borderRadius: 10, padding: 12,
+          background: "#0d0d0d", display: "flex", flexDirection: "column", gap: 6
+        }}>
+          <div style={{ fontSize: 11, color: "#555", fontWeight: 500, display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+            RANKING ANALYSIS
+            {isCustomWeights && (
+              <span style={{ fontSize: 10, color: "#f59e0b" }}>· custom weights</span>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.55 }}>
+            {rankingExplanation.text}
+          </div>
+        </div>
+      )}
+
       {/* Candidate Sites */}
-      <div style={{ border: "1px solid #333", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10, flex: 1, minHeight: 0 }}>
+      <div style={{ border: "1px solid #333", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: "#aaa", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "#666" }}>
@@ -105,9 +147,12 @@ export default function SiteDashboard({ sites, rankings, selectedSite, mission, 
             </svg>
             Candidate sites
           </span>
-          <span style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>Ranked by fit</span>
+          <span style={{ fontSize: 12, color: "#666", fontWeight: 400 }}>
+            {MISSION_NAMES[mission] || mission}
+            {isCustomWeights && <span style={{ color: "#f59e0b" }}> · modified</span>}
+          </span>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, overflowY: "auto", flex: 1 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {sortedSites.map((s, idx) => {
             const isSel = s.id === selectedSite.id;
             const rankColors = ["#4ade80", "#facc15", "#888"];
@@ -117,7 +162,7 @@ export default function SiteDashboard({ sites, rankings, selectedSite, mission, 
                 key={s.id}
                 onClick={() => onSelectSite(s)}
                 style={{
-                  padding: "10px 12px", borderRadius: 8,
+                  padding: "8px 10px", borderRadius: 8,
                   border: `1px solid ${isSel ? "#e0e0e0" : "#333"}`,
                   background: isSel ? "#1a1a1a" : "transparent",
                   cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
@@ -142,13 +187,26 @@ export default function SiteDashboard({ sites, rankings, selectedSite, mission, 
         </div>
       </div>
 
+      {/* Score Decomposition */}
+      {selectedRanking?.decomposition && (
+        <div style={{ border: "1px solid #333", borderRadius: 12, padding: 14 }}>
+          <ScoreDecomposition
+            siteName={selectedSite.name}
+            siteCode={selectedSite.code}
+            score={selectedRanking.score}
+            decomposition={selectedRanking.decomposition}
+            isCustomWeights={isCustomWeights}
+          />
+        </div>
+      )}
+
       {/* Radar Chart */}
       <div style={{ border: "1px solid #333", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column", gap: 8, minHeight: 200 }}>
-        <div style={{ fontSize: 14, fontWeight: 500, color: "#aaa", display: "flex", alignItems: "center", gap: 6 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "#666" }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "#aaa", display: "flex", alignItems: "center", gap: 6 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ color: "#666" }}>
             <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 12 22 17"/><polyline points="2 12 12 17 22 12"/>
           </svg>
-          Site analysis — {selectedSite.code}
+          Feature profile — {selectedSite.code}
         </div>
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 160 }}>
           <svg width="180" height="180" viewBox="0 0 200 200">

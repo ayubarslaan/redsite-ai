@@ -39,17 +39,66 @@ class ScoreRequest(BaseModel):
     mission: str = Field(..., description="Mission profile key (settlement, science, resource)")
     weights: Optional[Dict[str, float]] = Field(
         None,
-        description="Optional custom weights. Must sum to 1.0. Keys: terrain, water, solar, science, edl"
+        description="Optional custom weights. Will be normalized to sum to 1.0. Keys: terrain, water, solar, science, edl"
     )
+
+class FeatureContribution(BaseModel):
+    """Decomposed contribution of a single feature to the total score."""
+    raw_score: float = Field(..., description="Raw feature value (0-100)")
+    weight: float = Field(..., description="Normalized mission weight applied")
+    contribution: float = Field(..., description="Weighted contribution to total score")
+    percentage: float = Field(..., description="Percentage of total score from this feature")
 
 class RankingItem(BaseModel):
     site_id: str
     score: float
     rank: int
+    decomposition: Optional[Dict[str, FeatureContribution]] = Field(
+        None, description="Per-feature score breakdown reproducing the total score"
+    )
+
+class RankingExplanation(BaseModel):
+    """Natural-language explanation of why rankings changed (or are stable)."""
+    text: str
+    rank1_site_id: str
+    rank1_site_name: str
+    key_advantage_feature: str
+    key_advantage_contribution_delta: float
 
 class ScoreResponse(BaseModel):
     mission: str
+    mission_key: str
+    weights_used: Dict[str, float] = Field(..., description="The normalized weights actually applied")
+    is_custom_weights: bool = Field(False, description="True when user-supplied weights were applied")
     rankings: List[RankingItem]
+    explanation: Optional[RankingExplanation] = None
+
+# ---------------------------------------------------------------------------
+# Comparison models
+# ---------------------------------------------------------------------------
+
+class SiteComparisonEntry(BaseModel):
+    site_id: str
+    site_name: str
+    site_code: str
+    rank: int
+    score: float
+    decomposition: Dict[str, FeatureContribution]
+    strengths: List[str] = Field(..., description="Features where this site leads the comparison")
+    weaknesses: List[str] = Field(..., description="Features where this site trails the comparison")
+
+class CompareRequest(BaseModel):
+    mission: str
+    weights: Optional[Dict[str, float]] = None
+    site_ids: Optional[List[str]] = Field(
+        None, description="Specific site IDs to compare. Defaults to top-2 ranked sites."
+    )
+
+class CompareResponse(BaseModel):
+    mission: str
+    weights_used: Dict[str, float]
+    sites: List[SiteComparisonEntry]
+    narrative: str = Field(..., description="Analyst narrative comparing the sites using actual contributions")
 
 # ---------------------------------------------------------------------------
 # Mission profile models
@@ -65,9 +114,28 @@ class MissionProfileResponse(BaseModel):
 # Analyst models
 # ---------------------------------------------------------------------------
 
+class AnalystSiteData(BaseModel):
+    """Slim site representation passed to the analyst for context."""
+    id: str
+    name: str
+    code: str
+    coordinates: "Coordinates"
+    features: "SiteFeatures"
+    description: str
+    score: Optional[float] = None
+    rank: Optional[int] = None
+    decomposition: Optional[Dict[str, "FeatureContribution"]] = Field(
+        None, description="Score decomposition for this site under current weights"
+    )
+
 class AnalystContext(BaseModel):
     mission: Optional[str] = Field(None, description="Current mission profile key")
     selected_site: Optional[str] = Field(None, description="Currently selected site ID")
+    sites: List["AnalystSiteData"] = Field(default_factory=list, description="All candidate sites with scores")
+    custom_weights: Optional[Dict[str, float]] = Field(
+        None, description="User-supplied what-if weights (pre-normalization)"
+    )
+    is_custom_weights: bool = Field(False, description="True when the user has modified default weights")
 
 class AnalystChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500, description="User question")
